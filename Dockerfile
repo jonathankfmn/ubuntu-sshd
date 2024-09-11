@@ -17,7 +17,13 @@ RUN mkdir -p /run/sshd \
     && chmod 755 /run/sshd
 
 # Check if the user exists before trying to create it
-RUN if ! id -u $SSH_USERNAME > /dev/null 2>&1; then useradd -ms /bin/bash $SSH_USERNAME; fi
+# This Command also adds the user to the sudo group
+# In the default ubuntu docker image, there is no sudo group, so we need to create it later in the script
+RUN if ! id -u $SSH_USERNAME > /dev/null 2>&1; then useradd -ms /bin/bash -G  sudo $SSH_USERNAME; fi
+
+# Because the folder already exists, we need to change the owner to the new user
+RUN chown -R $SSH_USERNAME:$SSH_USERNAME /home/$SSH_USERNAME
+RUN chmod 750 /home/$SSH_USERNAME
 
 # Set up SSH configuration
 RUN mkdir -p /home/$SSH_USERNAME/.ssh && chown $SSH_USERNAME:$SSH_USERNAME /home/$SSH_USERNAME/.ssh \

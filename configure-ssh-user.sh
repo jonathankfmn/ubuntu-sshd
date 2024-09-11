@@ -4,14 +4,34 @@
 : ${SSH_USERNAME:=ubuntu}
 : ${PASSWORD:=changeme}
 
-# Create the user with the provided username and set the password
-if id "$SSH_USERNAME" &>/dev/null; then
+# Check if the user exists
+if id -u "$SSH_USERNAME" > /dev/null 2>&1; then
     echo "User $SSH_USERNAME already exists"
 else
-    useradd -ms /bin/bash "$SSH_USERNAME"
+    # Create the user with a home directory and bash shell
+    echo "Creating user $SSH_USERNAME with a home directory and bash shell..."
+    useradd -ms /bin/bash -G sudo "$SSH_USERNAME"
+
+    # Set the user's password
+    echo "Setting the password for user $SSH_USERNAME..."
     echo "$SSH_USERNAME:$PASSWORD" | chpasswd
-    echo "User $SSH_USERNAME created with the provided password"
+
+    # Set correct ownership and permissions for the user's home directory
+    echo "Setting ownership and permissions for /home/$SSH_USERNAME..."
+    chown -R "$SSH_USERNAME:$SSH_USERNAME" "/home/$SSH_USERNAME"
+    chmod 755 "/home/$SSH_USERNAME"
+
+    echo "User $SSH_USERNAME created with the provided password and sudo rights"
 fi
+
+# Add the user $SSH_USERNAME to the sudo group
+echo "Adding user $SSH_USERNAME to the sudo group..."
+usermod -aG sudo "$SSH_USERNAME"
+
+# Display the groups of the created user
+echo "The user $SSH_USERNAME is member of following groups:"
+groups "$SSH_USERNAME"
+
 
 # Set the authorized keys from the AUTHORIZED_KEYS environment variable (if provided)
 if [ -n "$AUTHORIZED_KEYS" ]; then
